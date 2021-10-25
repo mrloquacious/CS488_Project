@@ -1,0 +1,64 @@
+freeway_data_example.json
+
+
+A row from freeway_loopdata.csv converted to JSON:
+{ "detectorid": 1345,
+  "starttime": "2011-09-15 00:00:00-07",
+  "volume": 0,
+  "speed": "",
+  "occupancy": 0, 
+  "status": 0,
+  "dqflags": 0
+}
+
+Then replacing the detectorid with the data for that detector from freeway_detectors.csv: 
+{ "detector": { "detectorid": 1345,
+								"highwayid": 3,
+								"milepost": 14.32,
+								"locationtext": "Sunnyside NB",
+								"detectorclass": 1,
+								"lanenumber": 1,
+								"stationid": 1045,
+							},
+  "starttime": "2011-09-15 00:00:00-07",
+  "volume": 0,
+  "speed": "",
+  "occupancy": 0, 
+  "status": 0,
+  "dqflags": 0
+}
+
+Then replacing the highwayid with data from highways.csv and stationid with data from freeway_stations.csv: 
+{ "detector": { "detectorid": 1345,
+								"highway": { "highwayid": 3,
+							 			 				 "shortdirection": "N",
+							 			 				 "direction": "NORTH",
+							 			 				 "highwayname": "I-205" 
+														},
+								"milepost": 14.32,
+								"locationtext": "Sunnyside NB",
+								"detectorclass": 1,
+								"lanenumber": 1,
+								"station": { "stationid": 1045,
+							 							 "highway": { "highwayid": 3,
+										  										"shortdirection": "N",
+										  										"direction": "NORTH",
+										  										"highwayname": "I-205" 
+																				},
+							 							 "milepost": 14.32,
+							 							 "locationtext": "Sunnyside NB",
+							 							 "upstream": 0,
+							 							 "downstream": 1046,
+							 							 "stationclass": 1,
+							 							 "numberlanes": 4,
+							 							 "latlon": "45.43324,-122.565775",
+							 							 "length": 0.94
+														},
+							},
+  "starttime": "2011-09-15 00:00:00-07",
+  "volume": 0,
+  "speed": "",
+  "occupancy": 0, 
+  "status": 0,
+  "dqflags": 0
+}
