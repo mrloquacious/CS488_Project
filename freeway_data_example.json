@@ -1,7 +1,7 @@
-freeway_data_example.json
+{"freeway_data_example.json"},
 
+{"A row from freeway_loopdata.csv converted to JSON:"}, 
 
-A row from freeway_loopdata.csv converted to JSON:
 { "detectorid": 1345,
   "starttime": "2011-09-15 00:00:00-07",
   "volume": 0,
@@ -9,9 +9,10 @@ A row from freeway_loopdata.csv converted to JSON:
   "occupancy": 0, 
   "status": 0,
   "dqflags": 0
-}
+},
 
-Then replacing the detectorid with the data for that detector from freeway_detectors.csv: 
+{"Then replacing the detectorid with the data for that detector"}, 
+
 { "detector": { "detectorid": 1345,
 								"highwayid": 3,
 								"milepost": 14.32,
@@ -26,9 +27,9 @@ Then replacing the detectorid with the data for that detector from freeway_detec
   "occupancy": 0, 
   "status": 0,
   "dqflags": 0
-}
+},
 
-Then replacing the highwayid with data from highways.csv and stationid with data from freeway_stations.csv: 
+{"Finally replacing the highwayid with data from highways.csv, stationid & downstream with data from freeway_stations.csv:"}, 
 { "detector": { "detectorid": 1345,
 								"highway": { "highwayid": 3,
 							 			 				 "shortdirection": "N",
@@ -53,12 +54,12 @@ Then replacing the highwayid with data from highways.csv and stationid with data
 							 							 "numberlanes": 4,
 							 							 "latlon": "45.43324,-122.565775",
 							 							 "length": 0.94
-														},
+														}
 							},
-  "starttime": "2011-09-15 00:00:00-07",
-  "volume": 0,
-  "speed": "",
-  "occupancy": 0, 
-  "status": 0,
-  "dqflags": 0
+              "starttime": "2011-09-15 00:00:00-07",
+              "volume": 0,
+              "speed": "",
+              "occupancy": 0, 
+              "status": 0,
+              "dqflags": 0
 }
