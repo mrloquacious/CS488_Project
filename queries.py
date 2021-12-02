@@ -4,8 +4,7 @@ from pyspark.sql import SQLContext
 from pyspark.sql import SparkSession
 from pyspark.sql import Row
 
-spark = SparkSession.builder.getOrCreate()
-sc = spark.sparkContext
+spark = SparkSession.builder.getOrCreate() sc = spark.sparkContext
 sql = SQLContext(sc)
 
 # Create dataframes
@@ -25,7 +24,9 @@ print(df_highway.select('speed').where((df_highway.speed<5) | (df_highway.speed>
 '''Query #2 '''
 print("\nQuery #2, total volume for the station Foster NB for Sept 15, 2011:")
 # SELECT total volume
-# WHERE Foster NB on Sept. 15
+# WHERE locationtext == Foster
+# AND shortdirection == N
+# AND startime = Sept 15 (All Day)
 volume = df_highway.select(df_highway.volume).filter((df_highway.locationtext == "Foster")
     & (df_highway.shortdirection=='N')
     & (df_highway.starttime > "2011-10-15 00:00:00-07")
@@ -35,53 +36,49 @@ print("Volume for Foster NB on Sept. 15, 2011:\n")
 volume.show()
 
 '''Query #5'''
-print("\nQuery #5, average travel time for 7-9AM and 4-6PM on September 22, 2011 for the I-205 NB freeway:")
 '''7am-9am'''
-#avgSpeeds = avg speed per detector
-#Filter by critera
-#Group By: detectorId and sum their speeds. Returns a list
-avgSpeeds = df_highway.filter((df_highway.starttime > "2011-10-22 07:00:00-07") 
-                              & (df_highway.starttime < "2011-10-22 09:00:00-07")
+print("\nQuery #5, average travel time for 7-9AM and 4-6PM on September 22, 2011 for the I-205 NB freeway:")
+
+#Filter df so we work with only the data we need
+filteredDf = df_highway.filter((df_highway.starttime > "2011-10-11 07:00:00-07") 
+                              & (df_highway.starttime < "2011-10-11 09:00:00-07")
                               & (df_highway.highwayname=="I-205") 
-                              & (df_highway.shortdirection=='N')).groupBy(df_highway.detectorid).agg(F.avg(df_highway.speed).alias('avgSpeed')).collect()
+                              & (df_highway.shortdirection=='N'))
 
-# Convert list into dataframe
-R = Row('detectorid', 'speed',)
-totalSpeeds = spark.createDataFrame([R(x,y) for x, y in avgSpeeds])
+filteredDf.cache()
+#Determine avg detector speed
+avgDetectorSpeeds = filteredDf.select('detectorid', 'speed').groupBy('detectorid').agg(F.avg('speed')).collect()
+#Convert from list to df
+R = Row('detectorid', 'speed')
+#Create df
+df_avgDetectorSpeed = spark.createDataFrame([R(x,y) for x, y in avgDetectorSpeeds])
 
-#determin lengths for detectors
-lengths = df_highway.filter((df_highway.starttime > "2011-10-22 07:00:00-07") 
-                              & (df_highway.starttime < "2011-10-22 09:00:00-07")
-                              & (df_highway.highwayname=="I-205") 
-                              & (df_highway.shortdirection=='N')).select(df_highway.detectorid,df_highway.length).distinct().collect()
+#Determine which detectors are associated with which stations
+stationDetectors = filteredDf.select('stationid', 'detectorid').distinct().collect()
+R2 = Row('stationid', 'detectorid')
+df_stationDetectors = spark.createDataFrame([R2(x,y) for x, y in stationDetectors])
 
-#Conver list into dataframe
-R2 = Row('detectorid', 'length',)
-detectorLengths = spark.createDataFrame([R2(x,y) for x, y in lengths])
+#Join df_stationDetectors with df_avgDetectorSpeed on detectorid to get new table
+stationDetectorSpeed = df_stationDetectors.join(df_avgDetectorSpeed, ['detectorid']).collect()
+R3 = Row('stationid', 'detectorid', 'speed')
+df_stationDetectorSpeed = spark.createDataFrame([R3(y, x, z) for x, y, z in stationDetectorSpeed])
 
-# Join based on detectorid and create a new column called "Travel Time" that is detector length/detector speed
-totalSpeeds = totalSpeeds.join(detectorLengths, ['detectorid']).withColumn("Travel Time", (F.col('length')/F.col('speed')))
-print("Travel time for I-205 NB on Sep. 22 from 7am-9am\n")
-totalSpeeds.agg(F.sum("Travel Time")).show()
+#Find avgStationSpeed
+avgStationSpeed = df_stationDetectorSpeed.groupBy('stationid').agg(F.avg('speed')).collect()
+R4 = Row('stationid', 'speed')
+df_avgStationSpeed = spark.createDataFrame([R4(x,y) for x, y in avgStationSpeed])
 
-'''4pm-6pm'''
-# Same stuff but for different time
-avgSpeeds = df_highway.filter((df_highway.starttime > "2011-10-22 16:00:00-07") 
-                              & (df_highway.starttime < "2011-10-22 18:00:00-07")
-                              & (df_highway.highwayname=="I-205") 
-                              & (df_highway.shortdirection=='N')).groupBy(df_highway.detectorid).agg(F.avg(df_highway.speed).alias('avgSpeed')).collect()
+#Find stationLengths
+#Since each station should have only 1 length, we look for distinct stationid and include the length. 
+stationLengths = filteredDf.select('stationid', 'length').distinct().collect()
+R5 = Row('stationid', 'length')
+df_stationLengths = spark.createDataFrame([R5(x,y) for x, y in stationLengths])
 
-R = Row('detectorid', 'speed',)
-totalSpeeds = spark.createDataFrame([R(x,y) for x, y in avgSpeeds])
+#Create final dataframe that shows the travel time to each station
+travelTime = df_avgStationSpeed.join(df_stationLengths, ['stationid']).withColumn("Travel Time", (F.col('length')/F.col('speed'))*60).collect()
+R6 = Row('stationid', 'Travel Time')
+df_travelTime = spark.createDataFrame([R6(a,d) for a,b,c,d in travelTime])
 
-lengths = df_highway.filter((df_highway.starttime > "2011-10-22 16:00:00-07") 
-                              & (df_highway.starttime < "2011-10-22 18:00:00-07")
-                              & (df_highway.highwayname=="I-205") 
-                              & (df_highway.shortdirection=='N')).select(df_highway.detectorid,df_highway.length).distinct().collect()
-
-R2 = Row('detectorid', 'length',)
-detectorLengths = spark.createDataFrame([R2(x,y) for x, y in lengths])
-
-totalSpeeds = totalSpeeds.join(detectorLengths, ['detectorid']).withColumn("Travel Time", (F.col('length')/F.col('speed')))
-print("Travel time for I-205 NB on Sep. 22 from 4pm-6pm\n")
-totalSpeeds.agg(F.sum("Travel Time")).show()
+#Sum Travel Time column to find total travel time
+print("Travel time: \n")
+df_travelTime.agg(F.sum("Travel Time")).show()
