@@ -12,9 +12,9 @@ sql = SQLContext(sc)
 df_highway = (sql.read
          .format("com.databricks.spark.csv")
          .option("header", "true")
-         # Get proper filename
          .load("gs://trafficdata_f21/processed_data/trafficData.csv")
          )
+df_highway.cache()
 
 '''Query #1 '''
 print("Query #1, count low speeds and high speeds:")
