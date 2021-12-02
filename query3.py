@@ -47,7 +47,7 @@ df5.createOrReplaceTempView("df_day")
 travel_times = {}
 
 # Loop over data in 5 minute increments:
-for i in range(25, 35, 5):
+for i in range(0, 1440, 5):
     # Query to get average speed and end time for 5 minute period:
     query_5mins = f'''SELECT starttime, speed from df_day
                 WHERE starttime > "2011-09-15 00:00:00" + INTERVAL {i} minutes
@@ -66,4 +66,4 @@ for i in range(25, 35, 5):
 
 print("Travel times for I-205 Foster NB station in 5 minute increments by end time:")
 for time in travel_times:
-    print(time, ' : ', travel_times[time])
+    print(time, ' : ', travel_times[time], ' seconds\n' )
