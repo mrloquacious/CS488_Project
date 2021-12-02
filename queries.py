@@ -16,7 +16,14 @@ df_highway = (sql.read
          .load("gs://trafficdata_f21/processed_data/trafficData.csv")
          )
 
+'''Query #1 '''
+print("Query #1, count low speeds and high speeds:")
+# SELECT COUNT(speed)
+# WHERE speed < 5 OR speed > 80
+print(df_highway.select('speed').where((df_highway.speed<5) | (df_highway.speed>80)).count())
+
 '''Query #2 '''
+print("\nQuery #2, total volume for the station Foster NB for Sept 15, 2011:")
 # SELECT total volume
 # WHERE Foster NB on Sept. 15
 volume = df_highway.select(df_highway.volume).filter((df_highway.locationtext == "Foster")
@@ -28,6 +35,7 @@ print("Volume for Foster NB on Sept. 15, 2011:\n")
 volume.show()
 
 '''Query #5'''
+print("\nQuery #5, average travel time for 7-9AM and 4-6PM on September 22, 2011 for the I-205 NB freeway:")
 '''7am-9am'''
 #avgSpeeds = avg speed per detector
 #Filter by critera
