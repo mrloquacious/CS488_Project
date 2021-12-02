@@ -61,7 +61,7 @@ df_third = df_third.withColumn("locationtext", regexp_replace(df_third["location
 df_third = df_third.filter(df_third.dqflags.cast('int').bitwiseAND(16) == 0) # only keep row if bit position 5 in the dqflag is off (on means Speed = 0 and Volume > 0)
 df_third = df_third.filter(df_third.dqflags.cast('int').bitwiseAND(32) == 0) # bit position 6 in the dqflag is off (on means Speed > 0 and Volume = 0)
 df_third = df_third.filter(df_third.dqflags.cast('int').bitwiseAND(64) == 0) # bit position 7 in the dqflag is off (on means Occupancy > 0 and Volume = 0)
-
+df_third = df_third.drop("dqflags") # not needed anymore
 
 
 # Show the result
