@@ -129,8 +129,8 @@ R6 = Row('stationid', 'Travel Time')
 df_travelTime = spark.createDataFrame([R6(a,d) for a,b,c,d in travelTime])
 
 #Sum Travel Time column to find total travel time
-print("Travel time: \n")
-df_travelTime.agg(F.sum("Travel Time for 7am-9am")).show()
+print("Travel time for 7am-9am: \n")
+df_travelTime.agg(F.sum("Travel Time")).show()
 
 '''4pm-6pm (16:00-18:00)'''
 #Filter df so we work with only the data we need
