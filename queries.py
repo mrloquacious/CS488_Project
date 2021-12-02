@@ -4,7 +4,7 @@ from pyspark.sql import SQLContext
 from pyspark.sql import SparkSession
 from pyspark.sql import Row
 
-spark = SparkSession.builder.appName('Data_Wrangling').getOrCreate()
+spark = SparkSession.builder.getOrCreate()
 sc = spark.sparkContext
 sql = SQLContext(sc)
 
@@ -13,42 +13,67 @@ df_highway = (sql.read
          .format("com.databricks.spark.csv")
          .option("header", "true")
          # Get proper filename
-         .load("processed_data_part-00000-12d30b96-2f98-4954-b4ac-66b549f6bdcc-c000.csv")
+         .load("gs://trafficdata_f21/processed_data/trafficData.csv")
          )
 
-
 '''Query #2 '''
-volume = df_highway.filter((df_highway.locationtext == "Foster") & (df_highway.shortDirection=='N')).agg(F.sum(df_highway.volume)).collect()
+# SELECT total volume
+# WHERE Foster NB on Sept. 15
+volume = df_highway.select(df_highway.volume).filter((df_highway.locationtext == "Foster")
+    & (df_highway.shortdirection=='N')
+    & (df_highway.starttime > "2011-10-15 00:00:00-07")
+    & (df_highway.starttime < "2011-10-16 00:00:00-07")).agg(F.sum(df_highway.volume))
 
-print(volume)
+print("Volume for Foster NB on Sept. 15, 2011:\n")
+volume.show()
 
-
- '''Query #5'''
+'''Query #5'''
+'''7am-9am'''
 #avgSpeeds = avg speed per detector
 #Filter by critera
 #Group By: detectorId and sum their speeds. Returns a list
-avgSpeeds = df_highway.filter((df_highway.starttime > "2011-10-11 07:00:00-07") 
-                              & (df_highway.starttime < "2011-10-11 09:00:00-07")
+avgSpeeds = df_highway.filter((df_highway.starttime > "2011-10-22 07:00:00-07") 
+                              & (df_highway.starttime < "2011-10-22 09:00:00-07")
                               & (df_highway.highwayname=="I-205") 
                               & (df_highway.shortdirection=='N')).groupBy(df_highway.detectorid).agg(F.avg(df_highway.speed).alias('avgSpeed')).collect()
 
-#Find length by detector
-#Each unique detector has a length, so we want (detectorId, length) together.
-#Filter by critera
-lengths = df_highway.filter((df_highway.starttime > "2011-10-11 07:00:00-07") 
-                              & (df_highway.starttime < "2011-10-11 09:00:00-07")
+# Convert list into dataframe
+R = Row('detectorid', 'speed',)
+totalSpeeds = spark.createDataFrame([R(x,y) for x, y in avgSpeeds])
+
+#determin lengths for detectors
+lengths = df_highway.filter((df_highway.starttime > "2011-10-22 07:00:00-07") 
+                              & (df_highway.starttime < "2011-10-22 09:00:00-07")
                               & (df_highway.highwayname=="I-205") 
                               & (df_highway.shortdirection=='N')).select(df_highway.detectorid,df_highway.length).distinct().collect()
 
-#Convert lists to Dataframe
-#totalSpeeds
-R = Row('stationId', 'speed',)
+#Conver list into dataframe
+R2 = Row('detectorid', 'length',)
+detectorLengths = spark.createDataFrame([R2(x,y) for x, y in lengths])
+
+# Join based on detectorid and create a new column called "Travel Time" that is detector length/detector speed
+totalSpeeds = totalSpeeds.join(detectorLengths, ['detectorid']).withColumn("Travel Time", (F.col('length')/F.col('speed')))
+print("Travel time for I-205 NB on Sep. 22 from 7am-9am\n")
+totalSpeeds.agg(F.sum("Travel Time")).show()
+
+'''4pm-6pm'''
+# Same stuff but for different time
+avgSpeeds = df_highway.filter((df_highway.starttime > "2011-10-22 16:00:00-07") 
+                              & (df_highway.starttime < "2011-10-22 18:00:00-07")
+                              & (df_highway.highwayname=="I-205") 
+                              & (df_highway.shortdirection=='N')).groupBy(df_highway.detectorid).agg(F.avg(df_highway.speed).alias('avgSpeed')).collect()
+
+R = Row('detectorid', 'speed',)
 totalSpeeds = spark.createDataFrame([R(x,y) for x, y in avgSpeeds])
 
-#detectorLengths
-R2 = Row('stationId', 'length',)
-detectorLengths = spark.createDataFrame([R2(x,y) for x, y in lengths])
-detectorLengths.show()
+lengths = df_highway.filter((df_highway.starttime > "2011-10-22 16:00:00-07") 
+                              & (df_highway.starttime < "2011-10-22 18:00:00-07")
+                              & (df_highway.highwayname=="I-205") 
+                              & (df_highway.shortdirection=='N')).select(df_highway.detectorid,df_highway.length).distinct().collect()
 
-#Join dataframes: travelTime(detectorid, (length/avgSpeed)*60)
-#find sum of travelTime
+R2 = Row('detectorid', 'length',)
+detectorLengths = spark.createDataFrame([R2(x,y) for x, y in lengths])
+
+totalSpeeds = totalSpeeds.join(detectorLengths, ['detectorid']).withColumn("Travel Time", (F.col('length')/F.col('speed')))
+print("Travel time for I-205 NB on Sep. 22 from 4pm-6pm\n")
+totalSpeeds.agg(F.sum("Travel Time")).show()
