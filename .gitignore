@@ -4,6 +4,7 @@ Part_2
 Part_3
 ARCHIVE
 CS488 Term Project Part 0.docx
+*.swp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

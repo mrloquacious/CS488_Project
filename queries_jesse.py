@@ -39,7 +39,8 @@ volume.show()
 
 '''Query #3'''
 # Convert starttime to timestamp:
-df3 = df_highway.withColumn("starttime", expr("substring(starttime, 1, length(starttime)-3)") .cast('timestamp'))
+df3 = df_highway.withColumn("starttime", expr("substring(starttime, 1, length(starttime)-3)") \
+        .cast('timestamp'))
 
 # Create a temp view to use in queries:
 df3.createOrReplaceTempView("df_all")
@@ -68,18 +69,20 @@ travel_times = {}
 for i in range(0, 1440, 5):
     # Query to get average speed and end time for 5 minute period:
     query_5mins = f'''SELECT starttime, speed from df_day
-                WHERE starttime > "2011-09-15 00:00:00" + INTERVAL {i} minutes
-                AND starttime <= "2011-09-15 00:00:00" + INTERVAL {i + 5} minutes '''
+                    WHERE starttime > "2011-09-15 00:00:00" + INTERVAL {i} minutes
+                    AND starttime <= "2011-09-15 00:00:00" + INTERVAL {i + 5} minutes '''
     # Get the dataframe for the 5 minute period:
     rows = spark.sql(query_5mins)
-    # Create temp view for the period:
-    rows.createOrReplaceTempView("df_5min")
     # Extract the last timestamp for the 5 minute period and the average speed:
     endtime = rows.agg({'starttime': 'max'})
     avg = rows.agg({'speed': 'avg'})
 
-    travel_times[str(endtime.collect()[0][0])] = \
-        (float(station_len) / avg.collect()[0][0]) * 3600
+    # Convert travel times to seconds:
+    if avg.collect()[0][0]:
+        travel_times[str(endtime.collect()[0][0])] = \
+            (float(station_len) / avg.collect()[0][0]) * 3600
+    else:
+        travel_times[str(endtime.collect()[0][0])] = 'No Data' 
 
 print("\nQuery #3 : Travel times for I-205 Foster NB station in 5 minute increments by end time")
 for time in travel_times:

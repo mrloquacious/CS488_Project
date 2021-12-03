@@ -31,7 +31,6 @@ query_len = ''' SELECT DISTINCT length FROM df4
 len_df = spark.sql(query_len)
 station_len = len_df.collect()[0][0]
 
-
 # Filter the Foster Rd NB data for 9/15/11
 query_day = '''SELECT starttime, speed FROM df4 WHERE locationtext = 'Foster'
                 AND starttime >= '2011-09-15 00:00:20' 
@@ -61,9 +60,12 @@ for i in range(0, 1440, 5):
     avg = rows.agg({'speed': 'avg'})
 
     # Convert travel times to seconds:
-    travel_times[str(endtime.collect()[0][0])] = \
-        (float(station_len) / avg.collect()[0][0]) * 3600
+    if avg.collect()[0][0]:
+        travel_times[str(endtime.collect()[0][0])] = \
+            (float(station_len) / avg.collect()[0][0]) * 3600
+    else:
+        travel_times[str(endtime.collect()[0][0])] = 'No Data' 
 
-print("Travel times for I-205 Foster NB station in 5 minute increments by end time:")
+print("\nTravel times for I-205 Foster NB station in 5 minute increments by end time")
 for time in travel_times:
     print(time, ' : ', travel_times[time], ' seconds\n' )
