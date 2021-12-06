@@ -84,9 +84,61 @@ for i in range(0, 120, 5):
 
 pprint(travel_times)
 
-'''Query #5'''
+'''Query #4'''
+print("\nQuery #4, average travel time for 7-9AM and 4-6PM on September 22, 2011 for station Foster NB in seconds:")
+# Convert starttime to timestamp:
+df4 = df_highway.withColumn("starttime", \
+                    expr("substring(starttime, 1, length(starttime)-3)") \
+                    .cast('timestamp'))
 
-print("\nQuery #5, average travel time for 7-9AM and 4-6PM on September 22, 2011 for the I-205 NB freeway:")
+# Create a temp view to use in queries:
+df4.createOrReplaceTempView("df_all2")
+
+#Query the length of the Foster NB station:
+query_len = ''' SELECT DISTINCT length FROM df_all2
+                WHERE locationtext = "Foster" AND
+                shortdirection = "N" '''
+len_df = spark.sql(query_len)
+station_len = len_df.collect()[0][0]
+
+# Create dictionary to hold result data:
+travel_times = {}
+
+# Filter the Foster Rd NB data for 9/22/11 from 7 AM - 9 AM:
+query_morn = '''SELECT starttime, speed FROM df_all2 WHERE locationtext = 'Foster'
+                AND starttime >= '2011-09-22 07:00:20'
+                AND starttime <= '2011-09-22 09:00:00'
+                AND shortdirection = 'N'
+                AND volume > 0 AND speed > 0 '''
+df_morn = spark.sql(query_morn)
+
+# Find the average speed for the morning peak:
+avg_morn = df_morn.agg({'speed': 'avg'})
+
+# Convert morning travel time to seconds:
+travel_times['7 AM - 9 AM'] = \
+        (float(station_len) / avg_morn.collect()[0][0]) * 3600
+
+# Filter the Foster Rd NB data for 9/22/11 from 4 PM - 6 PM:
+query_eve = '''SELECT starttime, speed FROM df_all2 WHERE locationtext = 'Foster'
+                AND starttime >= '2011-09-22 16:00:20'
+                AND starttime <= '2011-09-22 18:00:00'
+                AND shortdirection = 'N'
+                AND volume > 0 AND speed > 0 '''
+df_eve = spark.sql(query_eve)
+
+# Find the average speed for the evening peak:
+avg_eve = df_eve.agg({'speed': 'avg'})
+
+# Convert evening travel time to seconds:
+travel_times['4 PM - 6 PM'] = \
+        (float(station_len) / avg_eve.collect()[0][0]) * 3600
+
+for time in travel_times:
+    print(time, ' : ', travel_times[time], ' seconds\n')
+
+'''Query #5'''
+print("\nQuery #5, average travel time for 7-9AM and 4-6PM on September 22, 2011 for the I-205 NB freeway in minutes:")
 '''7am-9am'''
 #Filter df so we work with only the data we need
 filteredDf = df_highway.filter((df_highway.starttime > "2011-10-22 07:00:00-07") 
